@@ -1,6 +1,8 @@
 mod crx;
 mod cry;
 mod crz;
+mod mcry;
+mod mcrz;
 mod rx;
 mod rxx;
 mod ry;
@@ -26,4 +28,6 @@ pub use rzz::RZZGate;
 pub use u1::U1Gate;
 pub use u2::U2Gate;
 pub use u3::U3Gate;
+pub use mcry::MCRYGate;
+pub use mcrz::MCRZGate;
 pub use variable::VariableUnitaryGate;

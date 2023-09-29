@@ -1,26 +1,46 @@
 use crate::ir::gates::utils::{rot_z, rot_z_jac};
 use crate::ir::gates::{Gradient, Size};
 use crate::ir::gates::{Optimize, Unitary};
-use crate::{i, r};
 
 use ndarray::{Array2, Array3, ArrayViewMut2};
 use ndarray_linalg::c64;
+use ndarray_linalg::SVD;
+use std::f64::consts::PI;
+use crate::squaremat::Matmul;
 
-/// A gate representing a controlled Y rotation
+fn svd(matrix: ArrayViewMut2<c64>) -> (Array2<c64>, Array2<c64>) {
+    // let size = matrix.shape()[0];
+    // let layout = MatrixLayout::C {
+    //     row: size as i32,
+    //     lda: size as i32,
+    // };
+    let result = matrix.svd(true, true).unwrap();
+    // Safety: u/vt are the same size since matrix is a square matrix with sides of size `size`
+    (result.0.unwrap(), result.2.unwrap())
+    // unsafe {
+    //     (
+    //         Array2::from_shape_vec_unchecked((size, size), result.U.unwrap()),
+    //         Array2::from_shape_vec_unchecked((size, size), result.VT.unwrap()),
+    //     )
+    // }
+}
+
+
+/// A gate representing a multiplexed Z rotation one 1 qubit
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
-pub struct MCRYZGate {
+pub struct MCRZGate {
     size: usize,
-    radixes: Vec<usize>,
     dim: usize,
     shape: (usize, usize),
     num_parameters: usize,
 }
 
-impl MCRYZGate {
-    pub fn new(size: usize,) -> Self {
-        let dim = 2.pow(size);
-        let num_params = 2.pow(size - 1);
-        MCRYZGate {
+impl MCRZGate {
+    pub fn new(size: usize) -> Self {
+        let base: u32 = 2;
+        let dim = base.pow(size as u32) as usize;
+        let num_params = base.pow((size - 1) as u32) as usize;
+        MCRZGate {
             size,
             dim,
             shape: (dim, dim),
@@ -29,39 +49,28 @@ impl MCRYZGate {
     }
 }
 
-impl Unitary for MCRYZGate {
+impl Unitary for MCRZGate {
     fn num_params(&self) -> usize {
         self.num_parameters
     }
 
     fn get_utry(&self, params: &[f64], _constant_gates: &[Array2<c64>]) -> Array2<c64> {
         let mut arr = Array2::zeros((self.dim, self.dim));
-        let mut i = 0;
-        for param in params {
-            let block = rot_z(param);
+        let mut i: usize = 0;
+        for param in params.into_iter() {
+            let block = rot_z(*param, None);
             arr[[i, i]] = block[[0, 0]];
             arr[[i + 1, i + 1]] = block[[1, 1]];
-            arr[[i + 1, i]] = block[[1, 0]];
-            arr[[i, i + 1]] = block[[0, 1]];
             i += 2;
         }
-        arr;
+        let (u, vt) = svd(arr.view_mut());
+        u.matmul(vt.view())
     }
 }
 
-impl Gradient for MCRYZGate {
+impl Gradient for MCRZGate {
     fn get_grad(&self, params: &[f64], _const_gates: &[Array2<c64>]) -> Array3<c64> {
-        let mut arr = Array3::zeros((1, self.dim, self.dim));
-        let mut i = 0;
-        for param in params {
-            let block = rot_z_jac(param);
-            arr[[0, i, i]] = block[[0, 0, 0]];
-            arr[[0, i + 1, i + 1]] = block[[0, 1, 1]];
-            arr[[0, i + 1, i]] = block[[0, 1, 0]];
-            arr[[0, i, i + 1]] = block[[0, 0, 1]];;
-            i += 2;
-        }
-        arr;
+        unimplemented!()
     }
 
     fn get_utry_and_grad(
@@ -69,48 +78,36 @@ impl Gradient for MCRYZGate {
         params: &[f64],
         _const_gates: &[Array2<c64>],
     ) -> (Array2<c64>, Array3<c64>) {
-        let mut utry_arr = Array2::zeros((self.dim, self.dim));
-        let mut grad_arr = Array3::zeros((1, self.dim, self.dim));
-        let mut i = 0;
-        for param in params {
-            let utry_block = rot_z(param);
-            let grad_block = rot_z_jac(param);
-            utry_arr[[i, i]] = utry_block[[0, 0]];
-            utry_arr[[i + 1, i + 1]] = utry_block[[1, 1]];
-            utry_arr[[i + 1, i]] = utry_block[[1, 0]];
-            utry_arr[[i, i + 1]] = utry_block[[0, 1]];
-            grad_arr[[0, i, i]] = grad_block[[0, 0, 0]];
-            grad_arr[[0, i + 1, i + 1]] = grad_block[[0, 1, 1]];
-            grad_arr[[0, i + 1, i]] = grad_block[[0, 1, 0]];
-            grad_arr[[0, i, i + 1]] = grad_block[[0, 0, 1]];;
-            i += 2;
-        }
-        (utry_arr, grad_arr);
+        unimplemented!()
     }
 }
 
-impl Size for MCRYZGate {
+impl Size for MCRZGate {
     fn num_qudits(&self) -> usize {
         self.size
     }
 }
 
-impl Optimize for MCRYZGate {
-    fn optimize(&self, _env_matrix: ArrayViewMut2<c64>) -> Vec<f64> {
-        let thetas: Vec<f64> = Vec::new();
-        let mut i = 0;
-        while i < self.num_parameters {
+impl Optimize for MCRZGate {
+    fn optimize(&self, env_matrix: ArrayViewMut2<c64>) -> Vec<f64> {
+        let mut thetas: Vec<f64> = Vec::new();
+        let mut i: usize = 0;
+        while i < self.dim {
             let real = env_matrix[[i + 1, i + 1]].re;
             let imag = env_matrix[[i + 1, i + 1]].im;
-            let mut theta = (imag / real).atan();
-            if real < 0.0 && imag > 0.0 {
-                theta += PI;
-            } else if real < 0.0 && imag < 0.0 {
-                theta -= PI;
-            }
-            theta = -theta;
+            // Get angle of angle -theta/2
+            let b = (imag / real).atan();
+            let real_2 = env_matrix[[i, i]].re;
+            let imag_2 = env_matrix[[i, i]].im;
+            // Get angle of theta/2
+            let a = (imag_2 / real_2).atan();
+            let mut theta = b - a;
             thetas.push(theta);
+            i = i + 2;
         }
         thetas
     }
 }
+
+// sudo docker run -it -e OPENBLAS_ARGS="DYNAMIC_ARCH=1" -v $(pwd):/io -t bqskitrs_docker
+// /bin/maturin build  --release --features=openblas --compatibility=manylinux2014
