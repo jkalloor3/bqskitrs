@@ -101,7 +101,7 @@ impl Optimize for MCRZGate {
             let imag_2 = env_matrix[[i, i]].im;
             // Get angle of theta/2
             let a = (imag_2 / real_2).atan();
-            let mut theta = b - a;
+            let mut theta = a - b;
             thetas.push(theta);
             i = i + 2;
         }
