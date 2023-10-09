@@ -1,11 +1,10 @@
-use crate::ir::gates::utils::{rot_z, rot_z_jac};
+use crate::ir::gates::utils::rot_z;
 use crate::ir::gates::{Gradient, Size};
 use crate::ir::gates::{Optimize, Unitary};
 
 use ndarray::{Array2, Array3, ArrayViewMut2};
 use ndarray_linalg::c64;
 use ndarray_linalg::SVD;
-use std::f64::consts::PI;
 use crate::squaremat::Matmul;
 
 fn svd(matrix: ArrayViewMut2<c64>) -> (Array2<c64>, Array2<c64>) {
@@ -14,9 +13,16 @@ fn svd(matrix: ArrayViewMut2<c64>) -> (Array2<c64>, Array2<c64>) {
     //     row: size as i32,
     //     lda: size as i32,
     // };
-    let result = matrix.svd(true, true).unwrap();
+    let actual_result = matrix.svd(true, true).unwrap();
+    // let result_or_err = match result {
+    //     Ok(res)  => res,
+    //     Err(res) => panic!("Problem svding the matrix: {:?}", matrix),
+    // };
+
+    // let actual_result = result_or_err.unwrap();
+
     // Safety: u/vt are the same size since matrix is a square matrix with sides of size `size`
-    (result.0.unwrap(), result.2.unwrap())
+    (actual_result.0.unwrap(), actual_result.2.unwrap())
     // unsafe {
     //     (
     //         Array2::from_shape_vec_unchecked((size, size), result.U.unwrap()),
@@ -54,10 +60,10 @@ impl Unitary for MCRZGate {
         self.num_parameters
     }
 
-    fn get_utry(&self, params: &[f64], _constant_gates: &[Array2<c64>]) -> Array2<c64> {
+    fn get_utry(&self, _params: &[f64], _constant_gates: &[Array2<c64>]) -> Array2<c64> {
         let mut arr = Array2::zeros((self.dim, self.dim));
         let mut i: usize = 0;
-        for param in params.into_iter() {
+        for param in _params.into_iter() {
             let block = rot_z(*param, None);
             arr[[i, i]] = block[[0, 0]];
             arr[[i + 1, i + 1]] = block[[1, 1]];
@@ -69,13 +75,13 @@ impl Unitary for MCRZGate {
 }
 
 impl Gradient for MCRZGate {
-    fn get_grad(&self, params: &[f64], _const_gates: &[Array2<c64>]) -> Array3<c64> {
+    fn get_grad(&self, _params: &[f64], _const_gates: &[Array2<c64>]) -> Array3<c64> {
         unimplemented!()
     }
 
     fn get_utry_and_grad(
         &self,
-        params: &[f64],
+        _params: &[f64],
         _const_gates: &[Array2<c64>],
     ) -> (Array2<c64>, Array3<c64>) {
         unimplemented!()
@@ -101,7 +107,7 @@ impl Optimize for MCRZGate {
             let imag_2 = env_matrix[[i, i]].im;
             // Get angle of theta/2
             let a = (imag_2 / real_2).atan();
-            let mut theta = a - b;
+            let theta = a - b;
             thetas.push(theta);
             i = i + 2;
         }

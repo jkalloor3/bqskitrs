@@ -1,4 +1,4 @@
-use crate::ir::gates::utils::{rot_y, rot_y_jac};
+use crate::ir::gates::utils::rot_y;
 use crate::ir::gates::{Gradient, Size};
 use crate::ir::gates::{Optimize, Unitary};
 use crate::{i, r};
@@ -72,13 +72,13 @@ impl Unitary for MCRYGate {
 }
 
 impl Gradient for MCRYGate {
-    fn get_grad(&self, params: &[f64], _const_gates: &[Array2<c64>]) -> Array3<c64> {
+    fn get_grad(&self, _params: &[f64], _const_gates: &[Array2<c64>]) -> Array3<c64> {
         unimplemented!()
     }
 
     fn get_utry_and_grad(
         &self,
-        params: &[f64],
+        _params: &[f64],
         _const_gates: &[Array2<c64>],
     ) -> (Array2<c64>, Array3<c64>) {
         unimplemented!()
