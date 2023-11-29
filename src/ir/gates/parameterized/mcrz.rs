@@ -13,13 +13,11 @@ fn svd(matrix: ArrayViewMut2<c64>) -> (Array2<c64>, Array2<c64>) {
     //     row: size as i32,
     //     lda: size as i32,
     // };
-    let actual_result = matrix.svd(true, true).unwrap();
-    // let result_or_err = match result {
-    //     Ok(res)  => res,
-    //     Err(res) => panic!("Problem svding the matrix: {:?}", matrix),
-    // };
-
-    // let actual_result = result_or_err.unwrap();
+    let result = matrix.svd(true, true);
+    let actual_result = match result {
+        Ok(res)  => res,
+        Err(_res) => panic!("Problem svding the matrix: {:?}", matrix),
+    };
 
     // Safety: u/vt are the same size since matrix is a square matrix with sides of size `size`
     (actual_result.0.unwrap(), actual_result.2.unwrap())
