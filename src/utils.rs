@@ -1,7 +1,7 @@
 use ndarray::ArrayView1;
 use ndarray::{s, Array1, Array2, Array3, ArrayView2, ArrayView3, ArrayView4, Ix2};
 use ndarray_einsum_beta::einsum;
-use ndarray_linalg::{c64, Scalar};
+use ndarray_linalg::{c64, Scalar, norm};
 use crate::squaremat::*;
 use crate::r;
 
@@ -67,9 +67,10 @@ pub fn matrix_distance_squared(a: ArrayView2<c64>, b: ArrayView2<c64>) -> f64 {
     // 1 - np.abs(np.trace(np.dot(A,B.H))) / A.shape[0]
     // converted to
     // 1 - np.abs(np.sum(np.multiply(A,np.conj(B)))) / A.shape[0]
-    let prod = einsum("ij,ij->", &[&a, &b.conj()]).unwrap();
+    let diff = &a.view() - &b.view();
+    let prod = einsum("ij,ij->", &[&diff.conj(), &diff]).unwrap();
     let norm = prod.sum().norm();
-    1f64 - norm / a.shape()[0] as f64
+    norm.pow(0.5f64) // Get degree 2 distance
 }
 
 pub fn matrix_distance_squared_jac(
@@ -78,8 +79,11 @@ pub fn matrix_distance_squared_jac(
     j: ArrayView3<c64>,
 ) -> (f64, Vec<f64>) {
     let size = u.shape()[0];
-    let s = u.multiply(&m.conj().view()).sum();
-    let dsq = 1f64 - s.norm() / size as f64;
+    // let s = u.multiply(&m.conj().view()).sum() / size as f64 ;
+    let diff = &u.view() - &m.view();
+    // let prod = einsum("ij,ij->", &[&diff.conj(), &diff]).unwrap();
+    let s = diff.conj().view().multiply(&diff.view()).sum();
+    let dsq = (s.norm()).pow(0.5f64);
     if s.norm() == 0.0 {
         return (dsq, vec![std::f64::INFINITY; j.shape()[0]]);
     }
