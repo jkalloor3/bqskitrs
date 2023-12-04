@@ -81,9 +81,9 @@ pub fn matrix_distance_squared_jac(
     let size = u.shape()[0];
     // let s = u.multiply(&m.conj().view()).sum() / size as f64 ;
     let diff = &u.view() - &m.view();
-    // let prod = einsum("ij,ij->", &[&diff.conj(), &diff]).unwrap();
-    let s = diff.conj().view().multiply(&diff.view()).sum();
-    let dsq = (s.norm()).pow(0.5f64);
+    let s = einsum("ij,ij->", &[&diff.conj(), &diff]).unwrap().sum();
+    // let s = diff.conj().T().view().multiply(&diff.view()).sum();
+    let dsq = 0.5f64 * (s.norm()).pow(-1 * 0.5f64);
     if s.norm() == 0.0 {
         return (dsq, vec![std::f64::INFINITY; j.shape()[0]]);
     }
