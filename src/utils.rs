@@ -69,8 +69,8 @@ pub fn matrix_distance_squared(a: ArrayView2<c64>, b: ArrayView2<c64>) -> f64 {
     // 1 - np.abs(np.sum(np.multiply(A,np.conj(B)))) / A.shape[0]
     let diff = &a.view() - &b.view();
     let prod = einsum("ij,ij->", &[&diff.conj(), &diff]).unwrap();
-    let norm = prod.sum().norm();
-    norm.pow(0.5f64) // Get degree 2 distance
+    let norm = prod.sum().re; // Already real, just take real part
+    (norm) // Get degree 2 distance
 }
 
 pub fn matrix_distance_squared_jac(
@@ -78,23 +78,41 @@ pub fn matrix_distance_squared_jac(
     m: ArrayView2<c64>,
     j: ArrayView3<c64>,
 ) -> (f64, Vec<f64>) {
-    let size = u.shape()[0];
+    let size = u.shape()[0] as f64;
     // let s = u.multiply(&m.conj().view()).sum() / size as f64 ;
     let diff = &u.view() - &m.view();
-    let s = einsum("ij,ij->", &[&diff.conj(), &diff]).unwrap().sum();
+    let s = einsum("ij,ij->", &[&diff.conj(), &diff]).unwrap();
     // let s = diff.conj().T().view().multiply(&diff.view()).sum();
-    let dsq = 0.5f64 * (s.norm()).pow(-1 * 0.5f64);
-    if s.norm() == 0.0 {
+    let dsq = s.sum().re;
+    if s.sum().re == 0.0 {
         return (dsq, vec![std::f64::INFINITY; j.shape()[0]]);
     }
+    // Use loop
+    let iter = j.outer_iter();
+
+    // println!("Target: {:?}", u);
+
+    // for ji in iter {
+    //     println!("JI: {:?}", ji);
+    //     let mm = einsum("ij,jk->ik", &[&u, &ji.conj().t()]).unwrap();
+    //     println!("MM: {:?}", &mm);
+    //     let diag = einsum("ii->i", &[&mm]).unwrap();
+    //     println!("Diag: {:?}", diag);
+    //     let trace = diag.sum();
+    //     println!("Trace: {:?}", trace);
+    // }
+
     let jus: Vec<c64> = j
         .outer_iter()
-        .map(|ji| einsum("ij,ij->", &[&u, &ji.conj()]).unwrap().sum())
+        .map(|ji| u.multiply(&ji.conj().view()).sum()) // tr(VU^\dag)
         .collect();
+    // println!("Traces: {:?}", jus);
     let jacs = jus
         .iter()
-        .map(|jusi| -(jusi.re * s.re + jusi.im * s.im) / (size as f64 * s.norm()))
+        .map(|jusi| ((-2f64 * jusi.re)))
         .collect();
+    // println!("Updates: {:?}", jacs);
+
     (dsq, jacs)
 }
 
