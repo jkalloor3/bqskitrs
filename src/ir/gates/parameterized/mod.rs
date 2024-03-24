@@ -14,6 +14,7 @@ mod u2;
 mod u3;
 mod u8;
 mod variable;
+mod rzsub;
 
 pub use self::u8::U8Gate;
 pub use crx::CRXGate;
@@ -30,4 +31,5 @@ pub use u2::U2Gate;
 pub use u3::U3Gate;
 pub use mcry::MCRYGate;
 pub use mcrz::MCRZGate;
+pub use rzsub::RZSubGate;
 pub use variable::VariableUnitaryGate;

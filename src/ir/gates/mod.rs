@@ -40,6 +40,7 @@ pub enum Gate {
     CRZ(CRZGate),
     MCRZ(MCRZGate),
     MCRY(MCRYGate),
+    RZSubGate(RZSubGate),
     VariableUnitary(VariableUnitaryGate),
     Dynamic(Arc<dyn DynGate + Send + Sync>),
 }
@@ -63,6 +64,7 @@ impl Unitary for Gate {
             Gate::CRZ(_) => 1,
             Gate::MCRY(v) => v.num_params(),
             Gate::MCRZ(v) => v.num_params(),
+            Gate::RZSubGate(_) => 1,
             Gate::VariableUnitary(v) => v.num_params(),
             Gate::Dynamic(d) => d.num_params(),
         }
@@ -86,6 +88,7 @@ impl Unitary for Gate {
             Gate::CRZ(z) => z.get_utry(params, const_gates),
             Gate::MCRY(y) => y.get_utry(params, const_gates),
             Gate::MCRZ(z) => z.get_utry(params, const_gates),
+            Gate::RZSubGate(z) => z.get_utry(params, const_gates),
             Gate::VariableUnitary(v) => v.get_utry(params, const_gates),
             Gate::Dynamic(d) => d.get_utry(params, const_gates),
         }
@@ -111,6 +114,7 @@ impl Gradient for Gate {
             Gate::CRZ(z) => z.get_grad(params, const_gates),
             Gate::MCRY(y) => y.get_grad(params, const_gates),
             Gate::MCRZ(z) => z.get_grad(params, const_gates),
+            Gate::RZSubGate(z) => z.get_grad(params, const_gates),
             Gate::VariableUnitary(v) => v.get_grad(params, const_gates),
             Gate::Dynamic(d) => d.get_grad(params, const_gates),
         }
@@ -138,6 +142,7 @@ impl Gradient for Gate {
             Gate::CRZ(z) => z.get_utry_and_grad(params, const_gates),
             Gate::MCRY(y) => y.get_utry_and_grad(params, const_gates),
             Gate::MCRZ(z) => z.get_utry_and_grad(params, const_gates),
+            Gate::RZSubGate(z) => z.get_utry_and_grad(params, const_gates),
             Gate::VariableUnitary(v) => v.get_utry_and_grad(params, const_gates),
             Gate::Dynamic(d) => d.get_utry_and_grad(params, const_gates),
         }
@@ -163,6 +168,7 @@ impl Size for Gate {
             Gate::CRZ(_) => 2,
             Gate::MCRY(v) => v.num_qudits(),
             Gate::MCRZ(v) => v.num_qudits(),
+            Gate::RZSubGate(_) => 1,
             Gate::VariableUnitary(v) => v.num_qudits(),
             Gate::Dynamic(d) => d.num_qudits(),
         }
@@ -188,6 +194,7 @@ impl Optimize for Gate {
             Gate::CRZ(z) => z.optimize(env_matrix),
             Gate::MCRY(y) => y.optimize(env_matrix),
             Gate::MCRZ(z) => z.optimize(env_matrix),
+            Gate::RZSubGate(z) => z.optimize(env_matrix),
             Gate::VariableUnitary(v) => v.optimize(env_matrix),
             Gate::Dynamic(d) => d.optimize(env_matrix),
         }
