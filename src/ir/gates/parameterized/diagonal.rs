@@ -37,7 +37,8 @@ impl Unitary for DiagonalGate {
 
     fn get_utry(&self, params: &[f64], _constant_gates: &[Array2<c64>]) -> Array2<c64> {
         let mut arr: Array2<c64> = Array2::zeros((self.dim, self.dim));
-        let mut i: usize = 0;
+        let mut i: usize = 1;
+        arr[[0, 0]] = c64::new(1 as f64, 0 as f64);
         for param in params {
             arr[[i, i]] = imag_exp(*param);
             i += 1;
