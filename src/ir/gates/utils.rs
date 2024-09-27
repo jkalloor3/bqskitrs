@@ -79,6 +79,26 @@ pub fn imag_exp(theta: f64) -> c64 {
 }
 
 #[inline(always)]
+pub fn get_indices(index: usize, target_qudit: usize, num_qudits: usize) -> (usize, usize) {
+    // Get indices for the matrix based on the target qubit.
+    let shift_qubit = num_qudits - target_qudit - 1;
+    let shift = 2_usize.pow(shift_qubit as u32);
+    
+    // Split into two parts around target qubit
+    // 100 | 111
+    let left = index / shift;
+    let right = index % shift;
+
+    // Now, shift left by one spot to
+    // make room for the target qubit
+    let left_shifted = left * (shift * 2);
+    
+    // Now add 0 * new_ind and 1 * new_ind to get indices
+    (left_shifted + right, left_shifted + shift + right)
+}
+
+
+#[inline(always)]
 pub fn rot_z(theta: f64, phase: Option<c64>) -> Array2<c64> {
     let half_theta = c64::new(theta / 2.0, 0.0);
     let negi = c64::new(0.0, -1.0);

@@ -1,4 +1,4 @@
-use crate::ir::gates::utils::rot_y;
+use crate::ir::gates::utils::{rot_y, get_indices};
 use crate::ir::gates::{Gradient, Size};
 use crate::ir::gates::{Optimize, Unitary};
 use crate::{i, r};
@@ -26,18 +26,20 @@ fn svd(matrix: ArrayViewMut2<c64>) -> (Array2<c64>, Array2<c64>) {
 pub struct MPRYGate {
     size: usize,
     dim: usize,
+    target_qudit: usize,
     shape: (usize, usize),
     num_parameters: usize,
 }
 
 impl MPRYGate {
-    pub fn new(size: usize) -> Self {
+    pub fn new(size: usize, target_qudit: usize) -> Self {
         let base: u32 = 2;
         let dim = base.pow(size as u32) as usize;
         let num_params = base.pow((size - 1) as u32) as usize;
         MPRYGate {
             size,
             dim,
+            target_qudit,
             shape: (dim, dim),
             num_parameters: num_params,
         }
@@ -54,11 +56,12 @@ impl Unitary for MPRYGate {
         let mut i: usize = 0;
         for param in params {
             let block = rot_y(*param);
-            arr[[i, i]] = block[[0, 0]];
-            arr[[i + 1, i + 1]] = block[[1, 1]];
-            arr[[i + 1, i]] = block[[1, 0]];
-            arr[[i, i + 1]] = block[[0, 1]];
-            i += 2;
+            let (x1, x2) = get_indices(i, self.target_qudit, self.size);
+            arr[[x1, x1]] = block[[0, 0]];
+            arr[[x2, x2]] = block[[1, 1]];
+            arr[[x2, x1]] = block[[1, 0]];
+            arr[[x1, x2]] = block[[0, 1]];
+            i += 1;
         }
         let (u, vt) = svd(arr.view_mut());
         u.matmul(vt.view())
@@ -67,7 +70,29 @@ impl Unitary for MPRYGate {
 
 impl Gradient for MPRYGate {
     fn get_grad(&self, _params: &[f64], _const_gates: &[Array2<c64>]) -> Array3<c64> {
-        unimplemented!()
+        let orig_utry = self.get_utry(_params, _const_gates);
+        let mut grad: Array3<c64> = Array3::zeros((_params.len(), self.dim, self.dim));
+
+        for (i, &param) in _params.iter().enumerate() {
+            let dcos = -((param / 2.0).sin()) / 2.0;
+            let dsin = -c64::new(0.0, 1.0) * ((param / 2.0).cos()) / 2.0;
+
+            let (x1, x2) = get_indices(i, self.target_qudit, self.size);
+
+            let mut matrix = orig_utry.clone();
+
+            matrix[[x1, x1]] = c64::new(dcos, 0.0);
+            matrix[[x2, x2]] = c64::new(dcos, 0.0);
+            matrix[[x2, x1]] = dsin;
+            matrix[[x1, x2]] = -dsin;
+
+            for j in 0..self.dim {
+                for k in 0..self.dim {
+                    grad[[i, j, k]] = matrix[[j, k]];
+                }
+            }
+        }
+        grad
     }
 
     fn get_utry_and_grad(
@@ -75,7 +100,9 @@ impl Gradient for MPRYGate {
         _params: &[f64],
         _const_gates: &[Array2<c64>],
     ) -> (Array2<c64>, Array3<c64>) {
-        unimplemented!()
+        let utry = self.get_utry(_params, _const_gates);
+        let grad = self.get_grad(_params, _const_gates);
+        (utry, grad)
     }
 }
 
@@ -89,10 +116,11 @@ impl Optimize for MPRYGate {
     fn optimize(&self, env_matrix: ArrayViewMut2<c64>) -> Vec<f64> {
         let mut thetas: Vec<f64> = Vec::new();
         let mut i: usize = 0;
-        // Each variable is indepent, so you can optimize 2
+        // Each variable is independent, so you can optimize each Ry separately
         while i < self.dim {
-            let a = (env_matrix[[i, i]] + env_matrix[[i + 1, i + 1]]).re;
-            let b = (env_matrix[[i + 1, i]] - env_matrix[[i, i + 1]]).re;
+            let (x1, x2) = get_indices(i, self.target_qudit, self.size);
+            let a = (env_matrix[[x1, x1]] + env_matrix[[x2, x2]]).re;
+            let b = (env_matrix[[x2, x1]] - env_matrix[[x1, x2]]).re;
             let mut theta = 2.0 * (a / (a.powi(2) + b.powi(2)).sqrt()).acos();
             theta *= if b > 0.0 { -1.0 } else { 1.0 };
             thetas.push(theta);

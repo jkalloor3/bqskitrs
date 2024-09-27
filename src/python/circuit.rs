@@ -28,11 +28,13 @@ fn pygate_to_native(pygate: &PyAny, constant_gates: &mut Vec<Array2<c64>>) -> Py
         "CRZGate" => Ok(CRZGate::new().into()),
         "MPRYGate" => {
             let size = pygate.getattr("num_qudits")?.extract::<usize>()?;
-            Ok(MPRYGate::new(size).into())
+            let target_qudit: usize = pygate.getattr("target_qudit")?.extract::<usize>()?;
+            Ok(MPRYGate::new(size, target_qudit).into())
         }
         "MPRZGate" => {
             let size = pygate.getattr("num_qudits")?.extract::<usize>()?;
-            Ok(MPRZGate::new(size).into())
+            let target_qudit: usize = pygate.getattr("target_qudit")?.extract::<usize>()?;
+            Ok(MPRZGate::new(size, target_qudit).into())
         }
         "DiagonalGate"  => {
             let size = pygate.getattr("num_qudits")?.extract::<usize>()?;
