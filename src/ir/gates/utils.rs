@@ -73,10 +73,10 @@ pub fn rot_y_jac(theta: f64) -> Array3<c64> {
 
 #[inline(always)]
 pub fn imag_exp(theta: f64) -> c64 {
+    // Return e^(i * theta)
     let posi = c64::new(0.0, 1.0);
     (posi * theta).exp()
 }
-
 
 #[inline(always)]
 pub fn rot_z(theta: f64, phase: Option<c64>) -> Array2<c64> {
