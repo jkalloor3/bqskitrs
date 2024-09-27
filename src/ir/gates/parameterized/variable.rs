@@ -14,14 +14,9 @@ fn svd(matrix: ArrayViewMut2<c64>) -> (Array2<c64>, Array2<c64>) {
     //     row: size as i32,
     //     lda: size as i32,
     // };
-    let result = matrix.svd(true, true);
-    let actual_result = match result {
-        Ok(res)  => res,
-        Err(_res) => panic!("Problem svding the matrix: {:?}", matrix),
-    };
-
+    let result = matrix.svd(true, true).unwrap();
     // Safety: u/vt are the same size since matrix is a square matrix with sides of size `size`
-    (actual_result.0.unwrap(), actual_result.2.unwrap())
+    (result.0.unwrap(), result.2.unwrap())
     // unsafe {
     //     (
     //         Array2::from_shape_vec_unchecked((size, size), result.U.unwrap()),

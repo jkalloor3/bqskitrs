@@ -10,43 +10,33 @@ use crate::squaremat::Matmul;
 use ndarray_linalg::SVD;
 
 fn svd(matrix: ArrayViewMut2<c64>) -> (Array2<c64>, Array2<c64>) {
-    // let size = matrix.shape()[0];
-    // let layout = MatrixLayout::C {
-    //     row: size as i32,
-    //     lda: size as i32,
-    // };
     let result = matrix.svd(true, true);
     let actual_result = match result {
         Ok(res)  => res,
         Err(_res) => panic!("Problem svding the matrix: {:?}", matrix),
     };
 
-    // Safety: u/vt are the same size since matrix is a square matrix with sides of size `size`
+    // Safety: u/vt are the same size since matrix is a square matrix with 
+    // sides of size `size`
     (actual_result.0.unwrap(), actual_result.2.unwrap())
-    // unsafe {
-    //     (
-    //         Array2::from_shape_vec_unchecked((size, size), result.U.unwrap()),
-    //         Array2::from_shape_vec_unchecked((size, size), result.VT.unwrap()),
-    //     )
-    // }
 }
 
 
 /// A gate representing a multiplexed Y rotation on 1 qubit
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
-pub struct MCRYGate {
+pub struct MPRYGate {
     size: usize,
     dim: usize,
     shape: (usize, usize),
     num_parameters: usize,
 }
 
-impl MCRYGate {
+impl MPRYGate {
     pub fn new(size: usize) -> Self {
         let base: u32 = 2;
         let dim = base.pow(size as u32) as usize;
         let num_params = base.pow((size - 1) as u32) as usize;
-        MCRYGate {
+        MPRYGate {
             size,
             dim,
             shape: (dim, dim),
@@ -55,7 +45,7 @@ impl MCRYGate {
     }
 }
 
-impl Unitary for MCRYGate {
+impl Unitary for MPRYGate {
     fn num_params(&self) -> usize {
         self.num_parameters
     }
@@ -76,7 +66,7 @@ impl Unitary for MCRYGate {
     }
 }
 
-impl Gradient for MCRYGate {
+impl Gradient for MPRYGate {
     fn get_grad(&self, _params: &[f64], _const_gates: &[Array2<c64>]) -> Array3<c64> {
         unimplemented!()
     }
@@ -90,17 +80,17 @@ impl Gradient for MCRYGate {
     }
 }
 
-impl Size for MCRYGate {
+impl Size for MPRYGate {
     fn num_qudits(&self) -> usize {
         self.size
     }
 }
 
-impl Optimize for MCRYGate {
+impl Optimize for MPRYGate {
     fn optimize(&self, env_matrix: ArrayViewMut2<c64>) -> Vec<f64> {
-        // println!("{} days", 31);
         let mut thetas: Vec<f64> = Vec::new();
         let mut i: usize = 0;
+        // Each variable is indepent, so you can optimize 2
         while i < self.dim {
             let a = (env_matrix[[i, i]] + env_matrix[[i + 1, i + 1]]).re;
             let b = (env_matrix[[i + 1, i]] - env_matrix[[i, i + 1]]).re;

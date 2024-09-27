@@ -32,19 +32,19 @@ fn svd(matrix: ArrayViewMut2<c64>) -> (Array2<c64>, Array2<c64>) {
 
 /// A gate representing a multiplexed Z rotation one 1 qubit
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
-pub struct MCRZGate {
+pub struct MPRZGate {
     size: usize,
     dim: usize,
     shape: (usize, usize),
     num_parameters: usize,
 }
 
-impl MCRZGate {
+impl MPRZGate {
     pub fn new(size: usize) -> Self {
         let base: u32 = 2;
         let dim = base.pow(size as u32) as usize;
         let num_params = base.pow((size - 1) as u32) as usize;
-        MCRZGate {
+        MPRZGate {
             size,
             dim,
             shape: (dim, dim),
@@ -53,7 +53,7 @@ impl MCRZGate {
     }
 }
 
-impl Unitary for MCRZGate {
+impl Unitary for MPRZGate {
     fn num_params(&self) -> usize {
         self.num_parameters
     }
@@ -72,7 +72,7 @@ impl Unitary for MCRZGate {
     }
 }
 
-impl Gradient for MCRZGate {
+impl Gradient for MPRZGate {
     fn get_grad(&self, _params: &[f64], _const_gates: &[Array2<c64>]) -> Array3<c64> {
         unimplemented!()
     }
@@ -86,13 +86,13 @@ impl Gradient for MCRZGate {
     }
 }
 
-impl Size for MCRZGate {
+impl Size for MPRZGate {
     fn num_qudits(&self) -> usize {
         self.size
     }
 }
 
-impl Optimize for MCRZGate {
+impl Optimize for MPRZGate {
     fn optimize(&self, env_matrix: ArrayViewMut2<c64>) -> Vec<f64> {
         let mut thetas: Vec<f64> = Vec::new();
         let mut i: usize = 0;
