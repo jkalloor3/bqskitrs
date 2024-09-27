@@ -7,7 +7,7 @@ use ndarray_linalg::c64;
 
 
 
-/// A gate representing a multiplexed Y rotation on 1 qubit
+/// A gate representing a Diagonal Gate on n-qubits
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 pub struct DiagonalGate {
     size: usize,
@@ -78,13 +78,14 @@ impl Size for DiagonalGate {
 
 impl Optimize for DiagonalGate {
     fn optimize(&self, env_matrix: ArrayViewMut2<c64>) -> Vec<f64> {
-        // println!("{} days", 31);
         let mut thetas: Vec<f64> = Vec::new();
         let mut i: usize = 1;
         let real_0 = env_matrix[[0, 0]].re;
         let imag_0 = env_matrix[[0, 0]].im;
-        // Get angle of angle -theta/2
+        // We want the top left element to be 1, so the current top left
+        // element is the global phase offset
         let global_phase = (imag_0 / real_0).atan();
+        // Calculate each theta and subtract from the global phase
         while i < self.dim {
             let real = env_matrix[[i, i]].re;
             let imag = env_matrix[[i, i]].im;

@@ -1,4 +1,4 @@
-use crate::ir::gates::utils::{rot_y, get_indices};
+use crate::ir::gates::utils::{rot_y, get_indices, svd};
 use crate::ir::gates::{Gradient, Size};
 use crate::ir::gates::{Optimize, Unitary};
 use crate::{i, r};
@@ -7,21 +7,8 @@ use ndarray::{Array2, Array3, ArrayViewMut2};
 use ndarray_linalg::c64;
 use crate::squaremat::Matmul;
 
-use ndarray_linalg::SVD;
-
-fn svd(matrix: ArrayViewMut2<c64>) -> (Array2<c64>, Array2<c64>) {
-    let result = matrix.svd(true, true);
-    let actual_result = match result {
-        Ok(res)  => res,
-        Err(_res) => panic!("Problem svding the matrix: {:?}", matrix),
-    };
-
-    // Safety: u/vt are the same size since matrix is a square matrix with sides of size `size`
-    (actual_result.0.unwrap(), actual_result.2.unwrap())
-}
-
-
-/// A gate representing a multiplexed Y rotation on 1 qubit
+/// A gate representing a multiplexed Y rotation with a target qudit
+/// and n -1 select qudits
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 pub struct MPRYGate {
     size: usize,
@@ -52,6 +39,10 @@ impl Unitary for MPRYGate {
     }
 
     fn get_utry(&self, params: &[f64], _constant_gates: &[Array2<c64>]) -> Array2<c64> {
+        // Return the unitary matrix for the MPRY gate
+        // If the target qudit is the bottom most qubit, then the matrix
+        // is block diagonal of RY rotations
+        // Otherwise, use the get_indices to permute the matrix appropriately
         let mut arr: Array2<c64> = Array2::zeros((self.dim, self.dim));
         let mut i: usize = 0;
         for param in params {
@@ -70,6 +61,8 @@ impl Unitary for MPRYGate {
 
 impl Gradient for MPRYGate {
     fn get_grad(&self, _params: &[f64], _const_gates: &[Array2<c64>]) -> Array3<c64> {
+        // Each theta is independent, so the gradient is simply
+        // the derivative of the rotation matrix with respect to theta
         let mut grad: Array3<c64> = Array3::zeros((_params.len(), self.dim, self.dim));
 
         for (i, &param) in _params.iter().enumerate() {

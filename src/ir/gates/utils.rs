@@ -1,5 +1,6 @@
-use ndarray::{Array2, Array3};
+use ndarray::{Array2, Array3, ArrayViewMut2};
 use ndarray_linalg::c64;
+use ndarray_linalg::SVD;
 
 #[inline(always)]
 pub fn rot_x(theta: f64) -> Array2<c64> {
@@ -69,6 +70,19 @@ pub fn rot_y_jac(theta: f64) -> Array3<c64> {
             ],
         )
     }
+}
+
+#[inline(always)]
+pub fn svd(matrix: ArrayViewMut2<c64>) -> (Array2<c64>, Array2<c64>) {
+    /// Return Unitaries from SVD decomposition
+    let result = matrix.svd(true, true);
+    let actual_result = match result {
+        Ok(res)  => res,
+        Err(_res) => panic!("Problem svding the matrix: {:?}", matrix),
+    };
+
+    // Safety: u/vt are the same size since matrix is a square matrix with sides of size `size`
+    (actual_result.0.unwrap(), actual_result.2.unwrap())
 }
 
 #[inline(always)]
