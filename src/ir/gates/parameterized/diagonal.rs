@@ -49,7 +49,14 @@ impl Unitary for DiagonalGate {
 
 impl Gradient for DiagonalGate {
     fn get_grad(&self, _params: &[f64], _const_gates: &[Array2<c64>]) -> Array3<c64> {
-        unimplemented!()
+        let mut grad: Array3<c64> = Array3::zeros((_params.len(), self.dim, self.dim));
+
+        for (i, param) in _params.iter().enumerate() {
+            let ind = i + 1;
+            grad[[i, ind, ind]] = c64::new(0.0, 1.0) * imag_exp(*param);
+        }
+
+        grad
     }
 
     fn get_utry_and_grad(
@@ -57,7 +64,9 @@ impl Gradient for DiagonalGate {
         _params: &[f64],
         _const_gates: &[Array2<c64>],
     ) -> (Array2<c64>, Array3<c64>) {
-        unimplemented!()
+        let utry = self.get_utry(_params, _const_gates);
+        let grad = self.get_grad(_params, _const_gates);
+        (utry, grad)
     }
 }
 

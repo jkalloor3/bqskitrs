@@ -70,7 +70,6 @@ impl Unitary for MPRYGate {
 
 impl Gradient for MPRYGate {
     fn get_grad(&self, _params: &[f64], _const_gates: &[Array2<c64>]) -> Array3<c64> {
-        let orig_utry = self.get_utry(_params, _const_gates);
         let mut grad: Array3<c64> = Array3::zeros((_params.len(), self.dim, self.dim));
 
         for (i, &param) in _params.iter().enumerate() {
@@ -79,18 +78,10 @@ impl Gradient for MPRYGate {
 
             let (x1, x2) = get_indices(i, self.target_qudit, self.size);
 
-            let mut matrix = orig_utry.clone();
-
-            matrix[[x1, x1]] = c64::new(dcos, 0.0);
-            matrix[[x2, x2]] = c64::new(dcos, 0.0);
-            matrix[[x2, x1]] = dsin;
-            matrix[[x1, x2]] = -dsin;
-
-            for j in 0..self.dim {
-                for k in 0..self.dim {
-                    grad[[i, j, k]] = matrix[[j, k]];
-                }
-            }
+            grad[[i, x1, x1]] = c64::new(dcos, 0.0);
+            grad[[i, x2, x2]] = c64::new(dcos, 0.0);
+            grad[[i, x2, x1]] = dsin;
+            grad[[i, x1, x2]] = -dsin;
         }
         grad
     }
