@@ -8,11 +8,6 @@ use ndarray_linalg::SVD;
 use crate::squaremat::Matmul;
 
 fn svd(matrix: ArrayViewMut2<c64>) -> (Array2<c64>, Array2<c64>) {
-    // let size = matrix.shape()[0];
-    // let layout = MatrixLayout::C {
-    //     row: size as i32,
-    //     lda: size as i32,
-    // };
     let result = matrix.svd(true, true);
     let actual_result = match result {
         Ok(res)  => res,
@@ -21,12 +16,6 @@ fn svd(matrix: ArrayViewMut2<c64>) -> (Array2<c64>, Array2<c64>) {
 
     // Safety: u/vt are the same size since matrix is a square matrix with sides of size `size`
     (actual_result.0.unwrap(), actual_result.2.unwrap())
-    // unsafe {
-    //     (
-    //         Array2::from_shape_vec_unchecked((size, size), result.U.unwrap()),
-    //         Array2::from_shape_vec_unchecked((size, size), result.VT.unwrap()),
-    //     )
-    // }
 }
 
 
@@ -112,6 +101,3 @@ impl Optimize for MPRZGate {
         thetas
     }
 }
-
-// sudo docker run -it -e OPENBLAS_ARGS="DYNAMIC_ARCH=1" -v $(pwd):/io -t bqskitrs_docker
-// /bin/maturin build  --release --features=openblas --compatibility=manylinux2014

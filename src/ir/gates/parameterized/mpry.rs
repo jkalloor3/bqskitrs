@@ -16,8 +16,7 @@ fn svd(matrix: ArrayViewMut2<c64>) -> (Array2<c64>, Array2<c64>) {
         Err(_res) => panic!("Problem svding the matrix: {:?}", matrix),
     };
 
-    // Safety: u/vt are the same size since matrix is a square matrix with 
-    // sides of size `size`
+    // Safety: u/vt are the same size since matrix is a square matrix with sides of size `size`
     (actual_result.0.unwrap(), actual_result.2.unwrap())
 }
 
